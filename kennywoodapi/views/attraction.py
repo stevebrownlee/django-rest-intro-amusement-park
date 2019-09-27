@@ -4,49 +4,41 @@ from rest_framework.viewsets import ViewSet
 from rest_framework.response import Response
 from rest_framework import serializers
 from rest_framework import status
-from kennywoodapi.models import ParkArea, Attraction
-from .attraction import AttractionSerializer
+from kennywoodapi.models import Attraction, ParkArea
 
 
-class ParkAreaSerializer(serializers.HyperlinkedModelSerializer):
+class AttractionSerializer(serializers.HyperlinkedModelSerializer):
     """JSON serializer for park areas
 
     Arguments:
         serializers
     """
-    attractions = serializers.HyperlinkedRelatedField(
-        queryset=Attraction.objects.all(),
-        view_name="attraction-detail",
-        many=True,
-        required=False,
-        lookup_field="pk"
-    )
-
     class Meta:
-        model = ParkArea
+        model = Attraction
         url = serializers.HyperlinkedIdentityField(
-            view_name='parkarea',
+            view_name='attraction',
             lookup_field='id'
         )
-        fields = ('id', 'url', 'name', 'theme', 'attractions')
-        depth = 1
+        fields = ('id', 'url', 'name', 'area')
 
 
-class ParkAreas(ViewSet):
+class Attractions(ViewSet):
     """Park Areas for Kennywood Amusement Park"""
 
     def create(self, request):
         """Handle POST operations
 
         Returns:
-            Response -- JSON serialized ParkArea instance
+            Response -- JSON serialized Attraction instance
         """
-        newarea = ParkArea()
-        newarea.name = request.data["name"]
-        newarea.theme = request.data["theme"]
-        newarea.save()
+        new_attraction = Attraction()
+        new_attraction.name = request.data["name"]
 
-        serializer = ParkAreaSerializer(newarea, context={'request': request})
+        area = ParkArea.objects.get(pk=request.data["area_id"])
+        new_attraction.area = area
+        new_attraction.save()
+
+        serializer = AttractionSerializer(new_attraction, context={'request': request})
 
         return Response(serializer.data)
 
@@ -57,22 +49,23 @@ class ParkAreas(ViewSet):
             Response -- JSON serialized park area instance
         """
         try:
-            area = ParkArea.objects.get(pk=pk)
-            serializer = ParkAreaSerializer(area, context={'request': request})
+            area = Attraction.objects.get(pk=pk)
+            serializer = AttractionSerializer(area, context={'request': request})
             return Response(serializer.data)
         except Exception as ex:
             return HttpResponseServerError(ex)
 
     def update(self, request, pk=None):
-        """Handle PUT requests for a park area
+        """Handle PUT requests for a park area attraction
 
         Returns:
             Response -- Empty body with 204 status code
         """
-        area = ParkArea.objects.get(pk=pk)
-        area.name = request.data["name"]
-        area.theme = request.data["theme"]
-        area.save()
+        attraction = Attraction.objects.get(pk=pk)
+        area = ParkArea.objects.get(pk=request.data["area_id"])
+        attraction.name = request.data["name"]
+        attraction.area = area
+        attraction.save()
 
         return Response({}, status=status.HTTP_204_NO_CONTENT)
 
@@ -83,24 +76,24 @@ class ParkAreas(ViewSet):
             Response -- 200, 404, or 500 status code
         """
         try:
-            area = ParkArea.objects.get(pk=pk)
+            area = Attraction.objects.get(pk=pk)
             area.delete()
 
             return Response({}, status=status.HTTP_204_NO_CONTENT)
 
-        except ParkArea.DoesNotExist as ex:
+        except Attraction.DoesNotExist as ex:
             return Response({'message': ex.args[0]}, status=status.HTTP_404_NOT_FOUND)
 
         except Exception as ex:
             return Response({'message': ex.args[0]}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def list(self, request):
-        """Handle GET requests to park areas resource
+        """Handle GET requests to park attractions resource
 
         Returns:
-            Response -- JSON serialized list of park areas
+            Response -- JSON serialized list of park attractions
         """
-        areas = ParkArea.objects.all()
-        serializer = ParkAreaSerializer(
-            areas, many=True, context={'request': request})
+        attractions = Attraction.objects.all()
+        serializer = AttractionSerializer(
+            attractions, many=True, context={'request': request})
         return Response(serializer.data)
