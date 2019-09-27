@@ -94,6 +94,12 @@ class Attractions(ViewSet):
             Response -- JSON serialized list of park attractions
         """
         attractions = Attraction.objects.all()
+
+        # Support filtering attractions by area id
+        area = self.request.query_params.get('area', None)
+        if area is not None:
+            attractions = attractions.filter(area__id=area)
+
         serializer = AttractionSerializer(
             attractions, many=True, context={'request': request})
         return Response(serializer.data)
