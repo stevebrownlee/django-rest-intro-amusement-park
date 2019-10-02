@@ -14,14 +14,6 @@ class ItinerarySerializer(serializers.HyperlinkedModelSerializer):
     Arguments:
         serializers
     """
-    attraction = serializers.HyperlinkedRelatedField(
-        queryset=Attraction.objects.all(),
-        view_name="attraction-detail",
-        many=False,
-        required=False,
-        lookup_field="pk"
-    )
-
     class Meta:
         model = Itinerary
         url = serializers.HyperlinkedIdentityField(
@@ -29,7 +21,7 @@ class ItinerarySerializer(serializers.HyperlinkedModelSerializer):
             lookup_field='id'
         )
         fields = ('id', 'url', 'attraction', 'starttime')
-        depth = 1
+        depth = 2
 
 
 class ItineraryView(ViewSet):
@@ -68,13 +60,12 @@ class ItineraryView(ViewSet):
             return HttpResponseServerError(ex)
 
     def update(self, request, pk=None):
-        """Handle PUT requests for a park area
+        """Handle PUT requests for an individual itinerary item
 
         Returns:
             Response -- Empty body with 204 status code
         """
         itinerary = Itinerary.objects.get(pk=pk)
-        itinerary.attraction = Attraction.objects.get(pk=request.data["attraction_id"])
         itinerary.starttime = request.data["starttime"]
         itinerary.save()
 
